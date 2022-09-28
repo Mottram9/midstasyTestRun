@@ -1,45 +1,70 @@
 ##Load packages
-
 import pandas as pd
-
+from enum import Enum
 from statistics import mean, stdev 
 
-import matplotlib as mpl 
+# import matplotlib as mpl 
 
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 
-from pandasgui import show
+# from pandasgui import show
 
 ##Read 2021 play by play dataset
+##Filter for regular season only
 
 data = pd.read_csv('2021playbyplay.csv.gz', compression = 'gzip', low_memory = False)
 
-##Filter for regular season only
-
 data = data.loc[data.season_type=='REG']
+
+player_dict = {}
 
 ##Create and fill the WR Dictionary for weekly targets array
 
-WRdictTest = {}
-dictNames = {}
-WRrankList = {}
-
-for key, value in data.iterrows():
-    if pd.isna(value.receiver_id)==False:
-        if (value.receiver_id) in WRdictTest:
-            pass
-        else:
-            WRdictTest[value.receiver_id] = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
-        dictNames[value.receiver_id] = value.receiver
-        WRdictTest[value.receiver_id][value.week-1] +=1
-        for key in WRdictTest:
-            print(dictNames[key])
-
-
-
-
+class PlayerType(Enum):
+    RB = 0, 
+    WR = 1
     
+class PlayerClass:
+    
+    def __init__(self, id, name, type):
+        self.id = id
+        self.name = name
+        self.type = type
+        self.weekly_values = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        
+    def __str__(self) -> str:
+        match self.type:
+            case PlayerType.RB:
+                return f'(RB) {self.name}: {self.get_std_dev()}'
+            case PlayerType.WR:
+                return f'(WR) {self.name}: {self.get_std_dev()}'
+            case _:
+                return f'(UNKNOWN) {self.name}: {self.get_std_dev()}'
+    
+    def add_value(self, week):
+        self.weekly_values[week - 1] += 1
+        
+    def get_std_dev(self):
+        return stdev(self.weekly_values)
 
+def try_add_player(id, name, week, type):
+    if pd.isna(id) == False:
+        if id not in player_dict:
+            player_dict[id] = PlayerClass(id, name, type)
+        player_dict[id].add_value(week)
+        
+def try_add_wr(csv_row):
+    try_add_player(csv_row.receiver_id, csv_row.receiver, csv_row.week, PlayerType.WR)
+    
+def try_add_rb(csv_row):
+    try_add_player(csv_row.rusher_id, csv_row.rusher, csv_row.week, PlayerType.RB)
+        
+for _, value in data.iterrows():
+    try_add_wr(value)
+    try_add_rb(value)
+
+for key in player_dict:
+    print(player_dict[key])
 
 
 
