@@ -46,7 +46,15 @@ class PlayerClass:
         
     def get_std_dev(self):
         return stdev(self.weekly_values)
-
+    
+    def to_csv_output(self):
+        if self.type == PlayerType.RB:
+            return f'{self.id},{self.name},RB,{self.get_std_dev()}\n'
+        elif self.type == PlayerType.WR:
+            return f'{self.id},{self.name},WR,{self.get_std_dev()}\n'
+        else:
+            return ''
+        
 def try_add_player(id, name, week, type):
     if pd.isna(id) == False:
         if id not in player_dict:
@@ -65,6 +73,11 @@ for _, value in data.iterrows():
 
 for key in player_dict:
     print(player_dict[key])
+    
+f = open('test.csv', 'w')
+f.write('id,player_name,pos,data\n')
+for key in player_dict:
+    f.write(player_dict[key].to_csv_output())
 
 
 
