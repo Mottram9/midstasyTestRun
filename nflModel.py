@@ -21,61 +21,93 @@ player_dict = {}
 ##Create and fill the WR Dictionary for weekly targets array
 
 class PlayerType(Enum):
-    RB = 0, 
-    WR = 1
+    RB = 1, 
+    WR = 2,
+    QB = 4
     
 class PlayerClass:
     
-    def __init__(self, id, name, type):
+    def __init__(self, id, name):
         self.id = id
         self.name = name
-        self.type = type
-        self.weekly_values = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        self.rb_values = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        self.wr_values = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        self.qb_values = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
         
     def __str__(self) -> str:
-        match self.type:
-            case PlayerType.RB:
-                return f'(RB) {self.name}: {self.get_std_dev()}'
-            case PlayerType.WR:
-                return f'(WR) {self.name}: {self.get_std_dev()}'
-            case _:
-                return f'(UNKNOWN) {self.name}: {self.get_std_dev()}'
+        return f'{self.name}: {self.get_std_dev_rb()} / {self.get_std_dev_wr()} / {self.get_std_dev_qb()}'
     
-    def add_value(self, week):
-        self.weekly_values[week - 1] += 1
+    def update_type(self, type):
+        # TODO Bitwise flags operations
+        pass
+        # if hasattr(self, 'type'):
+        #     self.type = self.type & type
+        # else:
+        #     self.type = type
+    
+    def add_rb_value(self, week):
+        self.rb_values[week - 1] += 1
+        self.update_type(PlayerType.RB)
         
-    def get_std_dev(self):
-        return stdev(self.weekly_values)
+    def add_wr_value(self, week):
+        self.wr_values[week - 1] += 1
+        self.update_type(PlayerType.WR)
+        
+    def add_qb_value(self, week):
+        self.qb_values[week - 1] += 1
+        self.update_type(PlayerType.QB)
+        
+    def get_std_dev_rb(self):
+        return stdev(self.rb_values)
+    
+    def get_std_dev_wr(self):
+        return stdev(self.wr_values)
+    
+    def get_std_dev_qb(self):
+        return stdev(self.qb_values)
+    
+    def get_type_string(self):
+        ret = ''
+        # TODO: FIX THIS
+        # if self.type & PlayerType.RB == PlayerType.RB:
+        #     ret += 'RB'
+        # if self.type & PlayerType.WR == PlayerType.WR:
+        #     ret += 'WR'
+        # if self.type & PlayerType.QB == PlayerType.QB:
+        #     ret += 'QB'
+            
+        return ret        
     
     def to_csv_output(self):
-        if self.type == PlayerType.RB:
-            return f'{self.id},{self.name},RB,{self.get_std_dev()}\n'
-        elif self.type == PlayerType.WR:
-            return f'{self.id},{self.name},WR,{self.get_std_dev()}\n'
-        else:
-            return ''
+        return f'{self.id},{self.name},{self.get_type_string()},{self.get_std_dev_rb()},{self.get_std_dev_wr()},{self.get_std_dev_qb()}\n'
         
-def try_add_player(id, name, week, type):
-    if pd.isna(id) == False:
-        if id not in player_dict:
-            player_dict[id] = PlayerClass(id, name, type)
-        player_dict[id].add_value(week)
+def try_add_player(id, name):
+    if id not in player_dict:
+        player_dict[id] = PlayerClass(id, name)
         
 def try_add_wr(csv_row):
-    try_add_player(csv_row.receiver_id, csv_row.receiver, csv_row.week, PlayerType.WR)
+    if pd.isna(csv_row.receiver_id) == False:
+        try_add_player(csv_row.receiver_id, csv_row.receiver)
+        player_dict[csv_row.receiver_id].add_wr_value(csv_row.week)
     
 def try_add_rb(csv_row):
-    try_add_player(csv_row.rusher_id, csv_row.rusher, csv_row.week, PlayerType.RB)
+    if pd.isna(csv_row.rusher_id) == False:
+        try_add_player(csv_row.rusher_id, csv_row.rusher)
+        player_dict[csv_row.rusher_id].add_rb_value(csv_row.week)
+    
+def try_add_qb(csv_row):
+    pass
         
 for _, value in data.iterrows():
     try_add_wr(value)
     try_add_rb(value)
+    try_add_qb(value)
 
-for key in player_dict:
-    print(player_dict[key])
+# for key in player_dict:
+#     print(player_dict[key])
     
 f = open('test.csv', 'w')
-f.write('id,player_name,pos,data\n')
+f.write('id,player_name,positions,rb_stddev,wr_stddev,qb_stddev\n')
 for key in player_dict:
     f.write(player_dict[key].to_csv_output())
 
