@@ -1,6 +1,6 @@
 ##Load packages
 import pandas as pd
-from enum import Enum
+from enum import Flag
 from statistics import mean, stdev 
 
 # import matplotlib as mpl 
@@ -20,9 +20,9 @@ player_dict = {}
 
 ##Create and fill the WR Dictionary for weekly targets array
 
-class PlayerType(Enum):
-    RB = 1, 
-    WR = 2,
+class PlayerType(Flag):
+    RB = 1
+    WR = 2
     QB = 4
     
 class PlayerClass:
@@ -38,12 +38,10 @@ class PlayerClass:
         return f'{self.name}: {self.get_std_dev_rb()} / {self.get_std_dev_wr()} / {self.get_std_dev_qb()}'
     
     def update_type(self, type):
-        # TODO Bitwise flags operations
-        pass
-        # if hasattr(self, 'type'):
-        #     self.type = self.type & type
-        # else:
-        #     self.type = type
+        if hasattr(self, 'type'):
+            self.type |= type
+        else:
+            self.type = type
     
     def add_rb_value(self, week):
         self.rb_values[week - 1] += 1
@@ -66,20 +64,11 @@ class PlayerClass:
     def get_std_dev_qb(self):
         return stdev(self.qb_values)
     
-    def get_type_string(self):
-        ret = ''
-        # TODO: FIX THIS
-        # if self.type & PlayerType.RB == PlayerType.RB:
-        #     ret += 'RB'
-        # if self.type & PlayerType.WR == PlayerType.WR:
-        #     ret += 'WR'
-        # if self.type & PlayerType.QB == PlayerType.QB:
-        #     ret += 'QB'
-            
-        return ret        
+    def is_type(self, player_type):
+        return self.type & player_type == player_type
     
     def to_csv_output(self):
-        return f'{self.id},{self.name},{self.get_type_string()},{self.get_std_dev_rb()},{self.get_std_dev_wr()},{self.get_std_dev_qb()}\n'
+        return f'{self.id},{self.name},{self.is_type(PlayerType.RB)},{self.is_type(PlayerType.WR)},{self.is_type(PlayerType.QB)},{self.get_std_dev_rb()},{self.get_std_dev_wr()},{self.get_std_dev_qb()}\n'
         
 def try_add_player(id, name):
     if id not in player_dict:
@@ -103,11 +92,11 @@ for _, value in data.iterrows():
     try_add_rb(value)
     try_add_qb(value)
 
-# for key in player_dict:
-#     print(player_dict[key])
+for key in player_dict:
+    print(player_dict[key])
     
 f = open('test.csv', 'w')
-f.write('id,player_name,positions,rb_stddev,wr_stddev,qb_stddev\n')
+f.write('id,player_name,is_rb,is_wr,is_qb,rb_stddev,wr_stddev,qb_stddev\n')
 for key in player_dict:
     f.write(player_dict[key].to_csv_output())
 
