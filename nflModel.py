@@ -167,10 +167,12 @@ for _, value in data.iterrows():
     try_add_wr_rz(value)    
     
     
-f = open('test.csv', 'w')
+f = open('test_nflmodel.csv', 'w')
 f.write('player,team,carry score,target score,passing score\n')
 for key in player_dict:
     f.write(player_dict[key].to_csv_output())
+f.flush()
+f.close()
 
 print(len(player_dict))
 print('COMPLETE')
