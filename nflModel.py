@@ -1,48 +1,181 @@
 ##Load packages
-
 import pandas as pd
-
+from enum import Flag
 from statistics import mean, stdev 
 
-import matplotlib as mpl 
+# import matplotlib as mpl 
 
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 
-from pandasgui import show
+# from pandasgui import show
 
 ##Read 2021 play by play dataset
+##Filter for regular season only
 
 data = pd.read_csv('2021playbyplay.csv.gz', compression = 'gzip', low_memory = False)
 
-##Filter for regular season only
-
 data = data.loc[data.season_type=='REG']
+
+player_dict = {}
 
 ##Create and fill the WR Dictionary for weekly targets array
 
-WRdictTest = {}
-dictNames = {}
-WRrankList = {}
-
-for key, value in data.iterrows():
-    if pd.isna(value.receiver_id)==False:
-        if (value.receiver_id) in WRdictTest:
-            pass
-        else:
-            WRdictTest[value.receiver_id] = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
-        dictNames[value.receiver_id] = value.receiver
-        WRdictTest[value.receiver_id][value.week-1] +=1
-        for key in WRdictTest:
-            print(dictNames[key])
-
-
-
-
+class PlayerType(Flag):
+    RB = 1
+    WR = 2
+    QB = 4
     
+class PlayerClass:
+    
+    def __init__(self, id, name, team):
+        self.id = id
+        self.name = name
+        self.team = team
+        self.rb_values = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        self.rb_rz_values = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        self.wr_values = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        self.wr_rz_values = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        self.qb_values = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        self.qb_rz_values = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        
+    def __str__(self) -> str:
+        return f'{self.name}, {self.team}: {self.get_bindex_rb()}, {self.get_bindex_wr()}, {self.get_bindex_qb()}'
+    
+    def update_type(self, type):
+        if hasattr(self, 'type'):
+            self.type |= type
+        else:
+            self.type = type
+    
+    def add_rb_value(self, week):
+        self.rb_values[week - 1] += 1
+        self.update_type(PlayerType.RB)
 
+    def add_rb_rz (self, week):
+        self.rb_rz_values[week - 1] += 1
+        self.update_type(PlayerType.RB)
+        
+    def add_wr_value(self, week):
+        self.wr_values[week - 1] += 1
+        self.update_type(PlayerType.WR)
 
+    def add_wr_rz (self, week):
+        self.wr_rz_values[week - 1] += 1
+        self.update_type(PlayerType.WR)
+        
+    def add_qb_value(self, week):
+        self.qb_values[week - 1] += 1
+        self.update_type(PlayerType.QB)
 
+    def add_qb_rz (self, week):
+        self.qb_rz_values[week - 1] += 1
+        self.update_type(PlayerType.QB)
+        
+    def get_stdev_rb(self):
+        return stdev(self.rb_values)
 
+    def get_mean_rb(self):
+        return mean(self.rb_values)
+
+    def get_total_rb(self):
+        return sum(self.rb_values)
+
+    def get_bindex_rb (self):
+        return (0.5*mean(self.rb_values))+(2*mean(self.rb_rz_values))+(0.03*sum(self.rb_values))
+
+    def get_bindex_qb (self):
+        return (0.2*mean(self.qb_values))+(1.5*mean(self.qb_rz_values))+(0.03*sum(self.qb_values))
+
+    def get_bindex_wr (self):
+        return (mean(self.wr_values))+(2.5*mean(self.wr_rz_values))+(0.06*sum(self.wr_values))
+        
+    def get_stdev_wr(self):    
+        return stdev(self.wr_values)
+
+    def get_total_wr(self):
+        return sum(self.wr_values)
+
+    def get_mean_wr(self):
+        return mean(self.wr_values)
+    
+    def get_stdev_qb(self):
+        return stdev(self.qb_values)
+
+    def get_total_qb(self):
+        return sum(self.qb_values)
+
+    def get_mean_qb(self):
+        return mean(self.qb_values)
+   
+    def is_type(self, player_type):
+        return self.type & player_type == player_type
+
+    def to_csv_output(self):
+        return f'{self.name},{self.team},{self.get_bindex_rb()},{self.get_bindex_wr()},{self.get_bindex_qb()}\n'
+    
+   ##FIX def to_csv_output(self):
+        ##return f'{self.name},{self.team},{self.get_type_string()},{self.get_bindex_rb()+self.get_bindex_wr()+self.get_bindex_qb()}\n'
+        
+def try_add_player(id, name, team):
+    if id not in player_dict:
+        player_dict[id] = PlayerClass(id, name, team)
+        
+def try_add_wr(csv_row):
+    if pd.isna(csv_row.receiver_id) == False:
+        try_add_player(csv_row.receiver_id, csv_row.receiver, csv_row.posteam)
+        player_dict[csv_row.receiver_id].add_wr_value(csv_row.week)
+
+def try_add_rb(csv_row):
+    if pd.isna(csv_row.rusher_id) == False:
+        try_add_player(csv_row.rusher_id, csv_row.rusher, csv_row.posteam)
+        player_dict[csv_row.rusher_id].add_rb_value(csv_row.week)
+
+def try_add_rb_rz(csv_row):
+    if pd.isna(csv_row.rusher_id) == False:
+        if csv_row.yardline_100<=20:
+            try_add_player(csv_row.rusher_id, csv_row.rusher, csv_row.posteam)
+            player_dict[csv_row.rusher_id].add_rb_rz(csv_row.week)
+    
+def try_add_qb(csv_row):
+    if pd.isna(csv_row.passer_player_id) == False:
+        try_add_player(csv_row.passer_player_id, csv_row.passer_player_name, csv_row.posteam)
+        player_dict[csv_row.passer_player_id].add_qb_value(csv_row.week)
+
+def try_add_qb_rz(csv_row):
+    if pd.isna(csv_row.passer_player_id) == False:
+        if csv_row.yardline_100<=20:
+            try_add_player(csv_row.passer_player_id, csv_row.passer_player_name, csv_row.posteam)
+            player_dict[csv_row.passer_player_id].add_qb_rz(csv_row.week)
+
+def try_add_wr_rz(csv_row):
+    if pd.isna(csv_row.receiver_id) == False:
+        if csv_row.yardline_100<=20:
+            try_add_player(csv_row.receiver_id, csv_row.receiver, csv_row.posteam)
+            player_dict[csv_row.receiver_id].add_wr_rz(csv_row.week)
+        
+for _, value in data.iterrows():
+    try_add_wr(value)
+# for _, value in data.iterrows():
+    try_add_rb(value)
+# for _, value in data.iterrows():
+    try_add_qb(value)
+# for _, value in data.iterrows():
+    try_add_rb_rz(value)
+# for _, value in data.iterrows():
+    try_add_qb_rz(value)
+# for _, value in data.iterrows():
+    try_add_wr_rz(value)    
+    
+    
+f = open('test_nflmodel.csv', 'w')
+f.write('player,team,carry score,target score,passing score\n')
+for key in player_dict:
+    f.write(player_dict[key].to_csv_output())
+f.flush()
+f.close()
+
+print(len(player_dict))
+print('COMPLETE')
 
 # WRTable1 = pd.DataFrame(WRdictTest)
 # WRTable1 = WRTable1.T
