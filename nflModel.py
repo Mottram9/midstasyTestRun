@@ -2,23 +2,23 @@
 import pandas as pd
 from enum import Flag
 from statistics import mean, stdev 
-
 # import matplotlib as mpl 
-
 # import matplotlib.pyplot as plt
-
 # from pandasgui import show
 
-##Read 2021 play by play dataset
-##Filter for regular season only
+use_local = True
 
-data = pd.read_csv('2021playbyplay.csv.gz', compression = 'gzip', low_memory = False)
+if use_local:
+    data = pd.read_csv('2021playbyplay.csv.gz', compression = 'gzip', low_memory = False)
+else:
+    YEAR = 2022
+    data = pd.read_csv('https://github.com/nflverse/nflverse-data/releases/download/pbp/'\
+                    'play_by_play_' + str(YEAR) + '.csv.gz',
+                    compression= 'gzip', low_memory= False)
 
 data = data.loc[data.season_type=='REG']
 
 player_dict = {}
-
-##Create and fill the WR Dictionary for weekly targets array
 
 class PlayerType(Flag):
     RB = 1
@@ -304,8 +304,4 @@ print('COMPLETE')
 # RBTable1['RZmean'] = RZ_RBTable2
 # RBTable1['RZstdev'] = RZ_RBTable3
 # show(RBTable1)
-
-
-print('COMPLETE')
-
 
