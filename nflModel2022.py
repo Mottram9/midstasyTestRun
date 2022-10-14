@@ -168,7 +168,7 @@ for _, value in data.iterrows():
 # for _, value in data.iterrows():
     try_add_wr_rz(value)    
     
-    
+
 f = open('test_nflmodel2022.csv', 'w')
 f.write('team,player,carry score,target score,passing score\n')
 for key in player_dict:
