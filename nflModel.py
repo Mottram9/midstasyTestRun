@@ -27,16 +27,19 @@ class PlayerType(Flag):
     
 class PlayerClass:
     
+    completed_pass_count = 0
+    total_pass_count = 0
+    rb_values = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    rb_rz_values = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    wr_values = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    wr_rz_values = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    qb_values = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    qb_rz_values = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        
     def __init__(self, id, name, team):
         self.id = id
         self.name = name
         self.team = team
-        self.rb_values = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-        self.rb_rz_values = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-        self.wr_values = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-        self.wr_rz_values = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-        self.qb_values = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-        self.qb_rz_values = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
         
     def __str__(self) -> str:
         return f'{self.name}, {self.team}: {self.get_bindex_rb()}, {self.get_bindex_wr()}, {self.get_bindex_qb()}'
@@ -63,9 +66,15 @@ class PlayerClass:
         self.wr_rz_values[week - 1] += 1
         self.update_type(PlayerType.WR)
         
-    def add_qb_value(self, week):
+    def add_qb_value(self, week, completed):
         self.qb_values[week - 1] += 1
         self.update_type(PlayerType.QB)
+        
+        if completed:
+            completed_pass_count = completed_pass_count + 1
+        
+        total_pass_count = total_pass_count + 1
+            
 
     def add_qb_rz (self, week):
         self.qb_rz_values[week - 1] += 1
@@ -107,6 +116,9 @@ class PlayerClass:
     def get_mean_qb(self):
         return mean(self.qb_values)
    
+    def get_completed_pass_percent(self):
+        return self.completed_pass_count / self.total_pass_count
+   
     def is_type(self, player_type):
         return self.type & player_type == player_type
 
@@ -139,7 +151,7 @@ def try_add_rb_rz(csv_row):
 def try_add_qb(csv_row):
     if pd.isna(csv_row.passer_player_id) == False:
         try_add_player(csv_row.passer_player_id, csv_row.passer_player_name, csv_row.posteam)
-        player_dict[csv_row.passer_player_id].add_qb_value(csv_row.week)
+        player_dict[csv_row.passer_player_id].add_qb_value(csv_row.week, csv_row.is_completed)
 
 def try_add_qb_rz(csv_row):
     if pd.isna(csv_row.passer_player_id) == False:
