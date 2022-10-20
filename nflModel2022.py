@@ -6,7 +6,7 @@ from statistics import mean, stdev
 
 ##Read 2021 play by play dataset
 YEAR = 2022
-data = pd.read_csv('https://github.com/nflverse/nflverse-data/releases/download/pbp/'\
+data = pd.read_csv('https://github.com/nflverse/nflverse-data/releases/download/pbp/' \
                    'play_by_play_' + str(YEAR) + '.csv.gz',
                    compression= 'gzip', low_memory= False)
 
