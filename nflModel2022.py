@@ -10,9 +10,7 @@ data_pbp = pd.read_csv('https://github.com/nflverse/nflverse-data/releases/downl
                    'play_by_play_' + str(YEAR) + '.csv.gz',
                    compression= 'gzip', low_memory= False)
 
-data_ids = pd.read_csv('https://github.com/nflverse/nflverse-data/releases/download/weekly_rosters/roster_weekly_2022.csv')
-
-data_snaps = pd.read_csv('https://github.com/nflverse/nflverse-data/releases/download/snap_counts/snap_counts_2022.csv')
+xxxx = pd.read_csv('https://github.com/nflverse/nflverse-data/releases/download/pbp_participation/pbp_participation_2022.csv')
 
 ##data = pd.read_csv('2021playbyplay.csv.gz', compression = 'gzip', low_memory = False)
 
@@ -307,18 +305,17 @@ class PlayerClass:
 
     def get_bindex_wr (self):
         try:
-            (0.063*self.get_mean_wr()*abs(self.get_adot()))+(3*self.get_mean_rz_wr())+(0.5*(self.get_mean_wr()/self.get_stdev_wr()))
+            (0.063 * self.get_mean_wr()*abs(self.get_adot()))+(3*self.get_mean_rz_wr())+(0.5*(self.get_mean_wr()/self.get_stdev_wr()))
         except:
             return 0
         else:
-            return (0.063*self.get_mean_wr()*abs(self.get_adot()))+(3*self.get_mean_rz_wr())+(0.5*(self.get_mean_wr()/self.get_stdev_wr()))
+            return (0.063 * self.get_mean_wr() * abs(self.get_adot()))+(3 * self.get_mean_rz_wr()) + (0.5 * (self.get_mean_wr()/self.get_stdev_wr()))
    
     def is_type(self, player_type):
         return self.type & player_type == player_type
 
-    def add_active(self, week, snaps):
-        if snaps > 0:
-            self.active_week[week-1] += 1
+    def add_active(self, week):
+        self.active_week[week - 1] = 1
 
     def add_rookie(self):
         itr = 0
@@ -389,33 +386,33 @@ def try_add_wr_rz(csv_row):
             player_dict[csv_row.receiver_player_id].add_wr_rz(csv_row.week)
 
 ## Loop through play by play to fill dict with above functions
-        
+
 for _, value in data_pbp.iterrows():
     try_add_wr(value)
-# for _, value in data.iterrows():
     try_add_rb(value)
-# for _, value in data.iterrows():
     try_add_qb(value)
-# for _, value in data.iterrows():
     try_add_rb_rz(value)
-# for _, value in data.iterrows():
     try_add_qb_rz(value)
-# for _, value in data.iterrows():
     try_add_wr_rz(value)
 
-for key, value in data_ids.iterrows():
-    try_add_id(value)
 
-for key, value in data_snaps.iterrows():
-    try_add_active(value)
+# Get the snap counts
+for _, value in xxxx.iterrows():
+    # 0 - Week Data
+    week_string = value['nflverse_game_id'].split('_')[1]
+    
+    # 10 - Offense Data
+    if pd.isna(value['offense_players']) == False: 
+        # Find the player in the dictionary and add active
+        for id in value['offense_players'].split(';'):
+            if id in player_dict:
+                player_dict[id].add_active(int(week_string))
 
-for key, value in data_ids.iterrows():
-    try_add_rookie(value)   
 
 for key in player_dict:
     print(player_dict[key])
+    
 ## Write to CSV for useable file    
-
 f = open('test_nflmodel2022.csv', 'w')
 f.write('player,team,carry total,target total,pass total,carry mean,target mean,pass mean,ypc,adot,adot qb,completion pct,carry stdev,target stdev,pass stdev,carry score,target score,passing score\n')
 for key in player_dict:
