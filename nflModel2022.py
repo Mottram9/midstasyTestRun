@@ -1,10 +1,10 @@
-##load packages
+## load packages
 
 import pandas as pd
 from enum import Flag
 from statistics import mean, stdev 
 
-##Read 2021 play by play dataset
+## Read play by play dataset
 YEAR = 2022
 data = pd.read_csv('https://github.com/nflverse/nflverse-data/releases/download/pbp/' \
                    'play_by_play_' + str(YEAR) + '.csv.gz',
@@ -16,11 +16,15 @@ data = pd.read_csv('https://github.com/nflverse/nflverse-data/releases/download/
 
 data = data.loc[data.season_type=='REG']
 
-##Create and fill the WR Dictionary for weekly targets array
+## Create empty dict for player scores
 
 player_dict = {}
 
-##Create and fill the WR Dictionary for weekly targets array
+## Last n weeks to include in calculations for player scores
+
+n_weeks_included = 7
+
+##PlayerType class, player attributes, values, and class specific methods
 
 class PlayerType(Flag):
     RB = 1
@@ -28,23 +32,21 @@ class PlayerType(Flag):
     QB = 4
     
 class PlayerClass:
-
-    completed_pass_count = 0
-    total_pass_count = 0
-    weekly_air_yds = [0, 0, 0, 0, 0, 0]
-    weekly_rushing_yds = [0, 0, 0, 0, 0, 0]
-    
-    
+   
     def __init__(self, id, name, team):
         self.id = id
         self.name = name
         self.team = team
-        self.rb_values = [0, 0, 0, 0, 0, 0]
-        self.rb_rz_values = [0, 0, 0, 0, 0, 0]
-        self.wr_values = [0, 0, 0, 0, 0, 0]
-        self.wr_rz_values = [0, 0, 0, 0, 0, 0]
-        self.qb_values = [0, 0, 0, 0, 0, 0]
-        self.qb_rz_values = [0, 0, 0, 0, 0, 0]
+        self.rb_values = [0, 0, 0, 0, 0, 0, 0]
+        self.rb_rz_values = [0, 0, 0, 0, 0, 0, 0]
+        self.wr_values = [0, 0, 0, 0, 0, 0, 0]
+        self.wr_rz_values = [0, 0, 0, 0, 0, 0, 0]
+        self.qb_values = [0, 0, 0, 0, 0, 0, 0]
+        self.qb_rz_values = [0, 0, 0, 0, 0, 0, 0]
+        self.weekly_air_yds = [0, 0, 0, 0, 0, 0, 0]
+        self.weekly_rushing_yds = [0, 0, 0, 0, 0, 0, 0]
+        self.completed_pass_count = 0
+        self.total_pass_count = 0
         
     def __str__(self) -> str:
         return f'{self.name}, {self.team}: {self.get_total_rb()}, {self.get_total_wr()}, {self.get_total_qb()}, {self.get_mean_rz_rb()}, {self.get_mean_rz_wr()}, {self.get_mean_rz_qb()}, {self.get_bindex_rb()}, {self.get_bindex_wr()}, {self.get_bindex_qb()}'
@@ -73,12 +75,13 @@ class PlayerClass:
         self.wr_rz_values[week - 1] += 1
         self.update_type(PlayerType.WR)
         
-    def add_qb_value(self, week, completed):
+    def add_qb_value(self, week, completed, air_yds):
         self.qb_values[week - 1] += 1
+        self.weekly_air_yds[week-1] += air_yds
         self.update_type(PlayerType.QB)
 
         if completed:
-            self.completed_pass_count = self.completed_pass_count + 1
+            self.completed_pass_count +=1
 
         self.total_pass_count += 1
 
@@ -87,72 +90,87 @@ class PlayerClass:
         self.update_type(PlayerType.QB)
         
     def get_stdev_rb(self):
-        return stdev(self.rb_values)
+        return stdev(self.rb_values[-n_weeks_included:])
 
     def get_mean_rb(self):
-        return mean(self.rb_values)
+        return mean(self.rb_values[-n_weeks_included:])
 
     def get_total_rb(self):
-        return sum(self.rb_values)
+        return sum(self.rb_values[-n_weeks_included:])
     
     def get_stdev_wr(self):    
-        return stdev(self.wr_values)
+        return stdev(self.wr_values[-n_weeks_included:])
 
     def get_mean_rz_wr(self):
-        return mean (self.wr_rz_values)
+        return mean (self.wr_rz_values[-n_weeks_included:])
 
     def get_mean_rz_rb(self):
-        return mean (self.rb_rz_values)
+        return mean (self.rb_rz_values[-n_weeks_included:])
 
     def get_mean_rz_qb(self):
-        return mean (self.qb_rz_values)
+        return mean (self.qb_rz_values[-n_weeks_included:])
 
     def get_total_wr(self):
-        return sum(self.wr_values)
+        return sum(self.wr_values[-n_weeks_included:])
 
     def get_mean_wr(self):
-        return mean(self.wr_values)
+        return mean(self.wr_values[-n_weeks_included:])
     
     def get_stdev_qb(self):
-        return stdev(self.qb_values)
+        return stdev(self.qb_values[-n_weeks_included:])
 
     def get_total_qb(self):
-        return sum(self.qb_values)
+        return sum(self.qb_values[-n_weeks_included:])
 
     def get_mean_qb(self):
-        return mean(self.qb_values)
+        return mean(self.qb_values[-n_weeks_included:])
 
     def get_mean_air_yds(self):
-        return mean(self.weekly_air_yds)
+        return mean(self.weekly_air_yds[-n_weeks_included:])
 
     def get_mean_rush_yds(self):
-        return mean(self.weekly_rushing_yds)
+        return mean(self.weekly_rushing_yds[-n_weeks_included:])
+
+    def get_adot(self):
+        return (self.get_mean_air_yds()/self.get_mean_wr())
+
+    def get_adot_qb(self):
+        return (self.get_mean_air_yds()/self.get_mean_qb())
+
+    def get_ypc(self):
+        return (self.get_mean_rush_yds()/self.get_mean_rb())
 
     def get_completed_pass_percent(self):
         try:
-            return self.completed_pass_count / self.total_pass_count
+            self.completed_pass_count / self.total_pass_count
         except:
             return 0
+        else:
+            return self.completed_pass_count / self.total_pass_count
 
     def get_bindex_rb (self):
         try:
-            return (0.1*(self.get_mean_rush_yds()/self.get_mean_rb())*self.get_mean_rb())+(2.5*self.get_mean_rz_rb())+(0.03*self.get_total_rb())+0.5*(self.get_mean_rb()/self.get_stdev_rb())
+            (0.1*self.get_mean_rb()*self.get_ypc())+(3*self.get_mean_rz_rb())+(0.03*self.get_total_rb())+(0.125*(self.get_mean_rb()/self.get_stdev_rb()))
         except:
-            return (0.1*(self.get_mean_rush_yds()/self.get_mean_rb())*self.get_mean_rb())+(2.5*self.get_mean_rz_rb())+(0.03*self.get_total_rb())
-        finally:
-            return (0.5*self.get_mean_rb())+(2.5*self.get_mean_rz_rb())+(0.03*self.get_total_rb())
+            return 0
+        else:
+            return (0.1*self.get_mean_rb()*self.get_ypc())+(3*self.get_mean_rz_rb())+(0.03*self.get_total_rb())+(0.125*(self.get_mean_rb()/self.get_stdev_rb()))
 
     def get_bindex_qb (self):
         try:
-            return (0.2*self.get_mean_qb())+(3*self.get_completed_pass_percent()*self.get_mean_rz_qb())+(0.03*self.get_total_qb())+(0.135*self.get_mean_qb()/self.get_stdev_qb())
+            (0.04*self.get_adot_qb()*self.get_completed_pass_percent()*self.get_mean_qb())+(2*self.get_completed_pass_percent()*self.get_mean_rz_qb())+(0.03*self.get_total_qb())+((0.04*self.get_completed_pass_percent()*self.get_mean_qb())/self.get_stdev_qb())
         except:
-            return (0.2*self.get_mean_qb())+(3*self.get_completed_pass_percent()*self.get_mean_rz_qb())+(0.03*self.get_total_qb())
+            return 0
+        else:
+            return  (0.04*self.get_completed_pass_percent()*self.get_mean_qb()*self.get_adot_qb())+(2*self.get_completed_pass_percent()*self.get_mean_rz_qb())+(0.03*self.get_total_qb())+((0.04*self.get_completed_pass_percent()*self.get_mean_qb())/self.get_stdev_qb())
 
     def get_bindex_wr (self):
         try:
-            return (0.6*self.get_mean_wr()*self.get_mean_air_yds())+(2.5*self.get_mean_rz_wr())+(0.06*self.get_total_wr())+(self.get_mean_wr()/self.get_stdev_wr())
+            (0.06*self.get_mean_wr()*self.get_adot())+(3*self.get_mean_rz_wr())+(0.06*self.get_total_wr())+(0.25*(self.get_mean_wr()/self.get_stdev_wr()))
         except:
-            return (0.6*self.get_mean_wr()*self.get_mean_air_yds())+(2.5*self.get_mean_rz_wr())+(0.06*self.get_total_wr())
+            return 0
+        else:
+            return (0.06*self.get_mean_wr()*self.get_adot())+(3*self.get_mean_rz_wr())+(0.06*self.get_total_wr())+(0.25*(self.get_mean_wr()/self.get_stdev_wr()))
    
     def is_type(self, player_type):
         return self.type & player_type == player_type
@@ -162,32 +180,36 @@ class PlayerClass:
     
    ##FIX def to_csv_output(self):
         ##return f'{self.name},{self.team},{self.get_type_string()},{self.get_bindex_rb()+self.get_bindex_wr()+self.get_bindex_qb()}\n'
+
+## Functions for filling the dict
         
 def try_add_player(id, name, team):
     if id not in player_dict:
         player_dict[id] = PlayerClass(id, name, team)
         
 def try_add_wr(csv_row):
-    if pd.isna(csv_row.receiver_id) == False:
-        if csv_row.penalty == 0:
-            try_add_player(csv_row.receiver_id, csv_row.receiver, csv_row.posteam)
-            player_dict[csv_row.receiver_id].add_wr_value(csv_row.week, csv_row.air_yards)
+    if pd.isna(csv_row.receiver_player_id) == False:
+        if pd.isna(csv_row.air_yards) == False: 
+            try_add_player(csv_row.receiver_player_id, csv_row.receiver_player_name, csv_row.posteam)
+            player_dict[csv_row.receiver_player_id].add_wr_value(csv_row.week, csv_row.air_yards)
 
 def try_add_rb(csv_row):
-    if pd.isna(csv_row.rusher_id) == False:
-        try_add_player(csv_row.rusher_id, csv_row.rusher, csv_row.posteam)
-        player_dict[csv_row.rusher_id].add_rb_value(csv_row.week, csv_row.rushing_yards)
+    if pd.isna(csv_row.rusher_player_id) == False:
+        if pd.isna(csv_row.rushing_yards) == False: 
+            try_add_player(csv_row.rusher_player_id, csv_row.rusher_player_name, csv_row.posteam)
+            player_dict[csv_row.rusher_player_id].add_rb_value(csv_row.week, csv_row.rushing_yards)
 
 def try_add_rb_rz(csv_row):
-    if pd.isna(csv_row.rusher_id) == False:
+    if pd.isna(csv_row.rusher_player_id) == False:
         if csv_row.yardline_100<=10:
-            try_add_player(csv_row.rusher_id, csv_row.rusher, csv_row.posteam)
-            player_dict[csv_row.rusher_id].add_rb_rz(csv_row.week)
+            try_add_player(csv_row.rusher_player_id, csv_row.rusher_player_name, csv_row.posteam)
+            player_dict[csv_row.rusher_player_id].add_rb_rz(csv_row.week)
     
 def try_add_qb(csv_row):
     if pd.isna(csv_row.passer_player_id) == False:
-        try_add_player(csv_row.passer_player_id, csv_row.passer_player_name, csv_row.posteam)
-        player_dict[csv_row.passer_player_id].add_qb_value(csv_row.week, csv_row.complete_pass)
+        if pd.isna(csv_row.air_yards) == False:
+            try_add_player(csv_row.passer_player_id, csv_row.passer_player_name, csv_row.posteam)
+            player_dict[csv_row.passer_player_id].add_qb_value(csv_row.week, csv_row.complete_pass, csv_row.air_yards)
 
 def try_add_qb_rz(csv_row):
     if pd.isna(csv_row.passer_player_id) == False:
@@ -196,10 +218,12 @@ def try_add_qb_rz(csv_row):
             player_dict[csv_row.passer_player_id].add_qb_rz(csv_row.week)
 
 def try_add_wr_rz(csv_row):
-    if pd.isna(csv_row.receiver_id) == False:
+    if pd.isna(csv_row.receiver_player_id) == False:
         if csv_row.yardline_100<=20:
-            try_add_player(csv_row.receiver_id, csv_row.receiver, csv_row.posteam)
-            player_dict[csv_row.receiver_id].add_wr_rz(csv_row.week)
+            try_add_player(csv_row.receiver_player_id, csv_row.receiver_player_name, csv_row.posteam)
+            player_dict[csv_row.receiver_player_id].add_wr_rz(csv_row.week)
+
+## Loop through play by play to fill dict with above functions
         
 for _, value in data.iterrows():
     try_add_wr(value)
@@ -214,8 +238,7 @@ for _, value in data.iterrows():
 # for _, value in data.iterrows():
     try_add_wr_rz(value)    
 
-
-    
+## Write to CSV for useable file    
 
 f = open('test_nflmodel2022.csv', 'w')
 f.write('player,team,carry total,target total,pass total,RZcarry mean, RZtarget mean,RZpass mean,carry score,target score,passing score\n')
