@@ -53,7 +53,7 @@ class PlayerClass:
         self.total_pass_count = 0
         
     def __str__(self) -> str:
-        return f'{self.id}, {self.name}, {self.team}: {self.active_week}, {self.get_total_rb()}, {self.get_total_wr()}, {self.get_total_qb()}, {self.get_mean_rz_rb()}, {self.get_mean_rz_wr()}, {self.get_mean_rz_qb()}, {self.get_bindex_rb()}, {self.get_bindex_wr()}, {self.get_bindex_qb()}'
+        return f'{self.id}, {self.name}, {self.team}: {self.active_week}, {self.get_total(PlayerType.RB)}, {self.get_total(PlayerType.WR)}, {self.get_total(PlayerType.QB)}, {self.get_mean(PlayerType.RB, True)}, {self.get_mean(PlayerType.WR, True)}, {self.get_mean(PlayerType.QB, True)}, {self.get_bindex_rb()}, {self.get_bindex_wr()}, {self.get_bindex_qb()}'
     
     def update_type(self, type):
         if hasattr(self, 'type'):
@@ -93,191 +93,78 @@ class PlayerClass:
         self.qb_rz_values[week - 1] += 1
         self.update_type(PlayerType.QB)
         
-    def get_stdev_rb(self):
+    def get_active_values(self, values, fun):
         ret = []
         itr = 0
-        for x in self.active_week:
-            if x == 1:
-                ret.append(self.rb_values[itr])
+        for week in self.active_week:
+            if week == 1:
+                ret.append(values[itr])
             itr += 1
         try:
-            stdev(ret[-n_weeks_included:])
+            fun(ret[-n_weeks_included:])
         except:
             return 0
         else:
-            return stdev(ret[-n_weeks_included:])
-
-    def get_mean_rb(self):
-        ret = []
-        itr = 0
-        for x in self.active_week:
-            if x == 1:
-                ret.append(self.rb_values[itr])
-            itr += 1
-        return mean(ret[-n_weeks_included:])
-
-    def get_total_rb(self):
-        ret = []
-        itr = 0
-        for x in self.active_week:
-            if x == 1:
-                ret.append(self.rb_values[itr])
-            itr += 1
-        return sum(ret[-n_weeks_included:])
+            return fun(ret[-n_weeks_included:])
     
-    def get_stdev_wr(self):    
-        ret = []
-        itr = 0
-        for x in self.active_week:
-            if x == 1:
-                ret.append(self.wr_values[itr])
-            itr += 1
-        try:
-            stdev(ret[-n_weeks_included:])
-        except:
-            return 0
+    def get_values(self, playerType, use_rz = False):
+        if use_rz:
+            if playerType == PlayerType.QB:
+                return self.qb_rz_values
+            elif playerType == PlayerType.RB:
+                return self.rb_rz_values
+            elif playerType == PlayerType.WR:
+                return self.wr_rz_values
         else:
-            return stdev(ret[-n_weeks_included:])
-
-    def get_mean_rz_wr(self):
-        ret = []
-        itr = 0
-        for x in self.active_week:
-            if x == 1:
-                ret.append(self.wr_rz_values[itr])
-            itr += 1
-        try:
-            mean(ret[-n_weeks_included:])
-        except:
-            return 0
-        else:
-            return mean(ret[-n_weeks_included:])
-
-    def get_mean_rz_rb(self):
-        ret = []
-        itr = 0
-        for x in self.active_week:
-            if x == 1:
-                ret.append(self.rb_rz_values[itr])
-            itr += 1
-        try:
-            mean(ret[-n_weeks_included:])
-        except:
-            return 0
-        else:
-            return mean(ret[-n_weeks_included:])
-
-    def get_mean_rz_qb(self):
-        ret = []
-        itr = 0
-        for x in self.active_week:
-            if x == 1:
-                ret.append(self.qb_rz_values[itr])
-            itr += 1
-        try:
-            mean(ret[-n_weeks_included:])
-        except:
-            return 0
-        else:
-            return mean(ret[-n_weeks_included:])
-
-    def get_total_wr(self):
-        ret = []
-        itr = 0
-        for x in self.active_week:
-            if x == 1:
-                ret.append(self.wr_values[itr])
-            itr += 1
-        return sum(ret[-n_weeks_included:])
-
-    def get_mean_wr(self):
-        ret = []
-        itr = 0
-        for x in self.active_week:
-            if x == 1:
-                ret.append(self.wr_values[itr])
-            itr += 1
-        return mean(ret[-n_weeks_included:])
+            if playerType == PlayerType.QB:
+                return self.qb_values
+            elif playerType == PlayerType.RB:
+                return self.rb_values
+            elif playerType == PlayerType.WR:
+                return self.wr_values
+            
     
-    def get_stdev_qb(self):
-        ret = []
-        itr = 0
-        for x in self.active_week:
-            if x == 1:
-                ret.append(self.qb_values[itr])
-            itr += 1
-        try:
-            stdev(ret[-n_weeks_included:])
-        except:
-            return 0
-        else:
-            return stdev(ret[-n_weeks_included:])
+    def get_stdev(self, playerType, use_rz = False):
+        return self.get_active_values(self.get_values(playerType, use_rz), stdev)
 
-    def get_total_qb(self):
-        ret = []
-        itr = 0
-        for x in self.active_week:
-            if x == 1:
-                ret.append(self.qb_values[itr])
-            itr += 1
-        return sum(ret[-n_weeks_included:])
+    def get_mean(self, playerType, use_rz = False):
+        return self.get_active_values(self.get_values(playerType, use_rz), mean)
 
-    def get_mean_qb(self):
-        if self.total_pass_count > 8:
-            ret = []
-            itr = 0
-            for x in self.active_week:
-                if x == 1:
-                    ret.append(self.qb_values[itr])
-                itr += 1
-            return mean(ret[-n_weeks_included:])
-        else:
-            return 0
+    def get_total(self, playerType, use_rz = False):
+        return self.get_active_values(self.get_values(playerType, use_rz), sum)
 
     def get_mean_air_yds(self):
-        ret = []
-        itr = 0
-        for x in self.active_week:
-            if x == 1:
-                ret.append(self.weekly_air_yds[itr])
-            itr += 1
-        return mean(ret[-n_weeks_included:])
+        return self.get_active_values(self.weekly_air_yds, mean)
 
     def get_mean_rush_yds(self):
-        ret = []
-        itr = 0
-        for x in self.active_week:
-            if x == 1:
-                ret.append(self.weekly_rushing_yds[itr])
-            itr += 1
-        return mean(ret[-n_weeks_included:])
+        return self.get_active_values(self.weekly_rushing_yds, mean)
 
-    def get_adot(self):
+    def get_adot_wr(self):
         if self.total_pass_count < 10:
             try:
-                self.get_mean_air_yds()/self.get_mean_wr()
+                self.get_mean_air_yds()/self.get_mean(PlayerType.WR)
             except:
                 return 0
             else:
-                return (self.get_mean_air_yds()/self.get_mean_wr())
+                return (self.get_mean_air_yds()/self.get_mean(PlayerType.WR))
         else:
             return 0
 
     def get_adot_qb(self):
         try:
-            self.get_mean_air_yds()/self.get_mean_qb()
+            self.get_mean_air_yds()/self.get_mean(PlayerType.QB)
         except:
             return 0
         else:
-            return (self.get_mean_air_yds()/self.get_mean_qb())
+            return (self.get_mean_air_yds()/self.get_mean(PlayerType.QB))
 
     def get_ypc(self):
         try:
-            self.get_mean_rush_yds()/self.get_mean_rb()
+            self.get_mean_rush_yds()/self.get_mean(PlayerType.RB)
         except:
             return 0
         else:
-            return (self.get_mean_rush_yds()/self.get_mean_rb())
+            return (self.get_mean_rush_yds()/self.get_mean(PlayerType.RB))
 
     def get_completed_pass_percent(self):
         try:
@@ -289,27 +176,27 @@ class PlayerClass:
 
     def get_bindex_rb (self):
         try:
-            (0.1*self.get_mean_rb()*self.get_ypc())+(3*self.get_mean_rz_rb())+(0.25*(self.get_mean_rb()/self.get_stdev_rb()))
+            (0.1*self.get_mean(PlayerType.RB)*self.get_ypc())+(3*self.get_mean(PlayerType.RB, True))+(0.25*(self.get_mean(PlayerType.RB)/self.get_stdev(PlayerType.RB)))
         except:
             return 0
         else:
-            return (0.1*self.get_mean_rb()*self.get_ypc())+(3*self.get_mean_rz_rb())+(0.25*(self.get_mean_rb()/self.get_stdev_rb()))
+            return (0.1*self.get_mean(PlayerType.RB)*self.get_ypc())+(3*self.get_mean(PlayerType.RB, True))+(0.25*(self.get_mean(PlayerType.RB)/self.get_stdev(PlayerType.RB)))
 
     def get_bindex_qb (self):
         try:
-            (0.06*self.get_adot_qb()*self.get_completed_pass_percent()*self.get_mean_qb())+(3*self.get_completed_pass_percent()*self.get_mean_rz_qb())+((0.06*self.get_completed_pass_percent()*self.get_mean_qb())/self.get_stdev_qb())
+            (0.06*self.get_adot_qb()*self.get_completed_pass_percent()*self.get_mean(PlayerType.QB))+(3*self.get_completed_pass_percent()*self.get_mean(PlayerType.QB, True))+((0.06*self.get_completed_pass_percent()*self.get_mean(PlayerType.QB))/self.get_stdev(PlayerType.QB))
         except:
             return 0
         else:
-            return (0.06*self.get_completed_pass_percent()*self.get_mean_qb()*self.get_adot_qb())+(3*self.get_completed_pass_percent()*self.get_mean_rz_qb())+((0.06*self.get_completed_pass_percent()*self.get_mean_qb())/self.get_stdev_qb())
+            return (0.06*self.get_completed_pass_percent()*self.get_mean(PlayerType.QB)*self.get_adot_qb())+(3*self.get_completed_pass_percent()*self.get_mean(PlayerType.QB, True))+((0.06*self.get_completed_pass_percent()*self.get_mean(PlayerType.QB))/self.get_stdev(PlayerType.QB))
 
     def get_bindex_wr (self):
         try:
-            (0.063 * self.get_mean_wr()*abs(self.get_adot()))+(3*self.get_mean_rz_wr())+(0.5*(self.get_mean_wr()/self.get_stdev_wr()))
+            (0.063 * self.get_mean(PlayerType.WR)*abs(self.get_adot_wr()))+(3*self.get_mean(PlayerType.WR, True))+(0.5*(self.get_mean(PlayerType.WR)/self.get_stdev(PlayerType.WR)))
         except:
             return 0
         else:
-            return (0.063 * self.get_mean_wr() * abs(self.get_adot()))+(3 * self.get_mean_rz_wr()) + (0.5 * (self.get_mean_wr()/self.get_stdev_wr()))
+            return (0.063 * self.get_mean(PlayerType.WR) * abs(self.get_adot_wr()))+(3 * self.get_mean(PlayerType.WR, True)) + (0.5 * (self.get_mean(PlayerType.WR)/self.get_stdev(PlayerType.WR)))
    
     def is_type(self, player_type):
         return self.type & player_type == player_type
@@ -326,7 +213,7 @@ class PlayerClass:
 
 
     def to_csv_output(self):
-        return f'{self.name},{self.team},{self.get_total_rb()},{self.get_total_wr()},{self.get_total_qb()},{self.get_mean_rb()},{self.get_mean_wr()},{self.get_mean_qb()},{self.get_ypc()},{self.get_adot()},{self.get_adot_qb()},{self.get_completed_pass_percent()},{self.get_stdev_rb()},{self.get_stdev_wr()},{self.get_stdev_qb()},{self.get_bindex_rb()},{self.get_bindex_wr()},{self.get_bindex_qb()}\n'
+        return f'{self.name},{self.team},{self.get_total(PlayerType.RB)},{self.get_total(PlayerType.WR)},{self.get_total(PlayerType.QB)},{self.get_mean(PlayerType.RB)},{self.get_mean(PlayerType.WR)},{self.get_mean(PlayerType.QB)},{self.get_ypc()},{self.get_adot_wr()},{self.get_adot_qb()},{self.get_completed_pass_percent()},{self.get_stdev(PlayerType.RB)},{self.get_stdev(PlayerType.WR)},{self.get_stdev(PlayerType.QB)},{self.get_bindex_rb()},{self.get_bindex_wr()},{self.get_bindex_qb()}\n'
     
    ##FIX def to_csv_output(self):
         ##return f'{self.name},{self.team},{self.get_type_string()},{self.get_bindex_rb()+self.get_bindex_wr()+self.get_bindex_qb()}\n'
@@ -340,10 +227,6 @@ def try_add_player(id, name, team):
 def try_add_id(csv_row):
     if csv_row.gsis_id in player_dict:
         id_dict[csv_row.pfr_id] = csv_row.gsis_id
-
-def try_add_active(csv_row):
-    if csv_row.pfr_player_id in id_dict:
-        player_dict[id_dict[csv_row.pfr_player_id]].add_active(csv_row.week, csv_row.offense_snaps)
 
 def try_add_rookie(csv_row):
     if csv_row.gsis_id in player_dict:
