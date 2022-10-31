@@ -289,27 +289,27 @@ class PlayerClass:
 
     def get_bindex_rb (self):
         try:
-            (0.1*self.get_mean_rb()*self.get_ypc())+(3*self.get_mean_rz_rb())+(0.25*(self.get_mean_rb()/self.get_stdev_rb()))
+            (0.15*self.get_mean_rb()*self.get_ypc())+(3*self.get_mean_rz_rb())+(0.5*(self.get_mean_rb()/self.get_stdev_rb()))
         except:
             return 0
         else:
-            return (0.1*self.get_mean_rb()*self.get_ypc())+(3*self.get_mean_rz_rb())+(0.25*(self.get_mean_rb()/self.get_stdev_rb()))
+            return (0.15*self.get_mean_rb()*self.get_ypc())+(3*self.get_mean_rz_rb())+(0.5*(self.get_mean_rb()/self.get_stdev_rb()))
 
     def get_bindex_qb (self):
         try:
-            (0.06*self.get_adot_qb()*self.get_completed_pass_percent()*self.get_mean_qb())+(3*self.get_completed_pass_percent()*self.get_mean_rz_qb())+((0.06*self.get_completed_pass_percent()*self.get_mean_qb())/self.get_stdev_qb())
+            (0.08*self.get_adot_qb()*self.get_completed_pass_percent()*self.get_mean_qb())+(3*self.get_completed_pass_percent()*self.get_mean_rz_qb())+((0.06*self.get_completed_pass_percent()*self.get_mean_qb())/self.get_stdev_qb())
         except:
             return 0
         else:
-            return (0.06*self.get_completed_pass_percent()*self.get_mean_qb()*self.get_adot_qb())+(3*self.get_completed_pass_percent()*self.get_mean_rz_qb())+((0.06*self.get_completed_pass_percent()*self.get_mean_qb())/self.get_stdev_qb())
+            return (0.08*self.get_completed_pass_percent()*self.get_mean_qb()*self.get_adot_qb())+(3*self.get_completed_pass_percent()*self.get_mean_rz_qb())+((0.06*self.get_completed_pass_percent()*self.get_mean_qb())/self.get_stdev_qb())
 
     def get_bindex_wr (self):
         try:
-            (0.063 * self.get_mean_wr()*abs(self.get_adot()))+(3*self.get_mean_rz_wr())+(0.5*(self.get_mean_wr()/self.get_stdev_wr()))
+            (0.1 * self.get_mean_wr()*abs(self.get_adot()))+(4*self.get_mean_rz_wr())+(self.get_mean_wr()/self.get_stdev_wr())
         except:
             return 0
         else:
-            return (0.063 * self.get_mean_wr() * abs(self.get_adot()))+(3 * self.get_mean_rz_wr()) + (0.5 * (self.get_mean_wr()/self.get_stdev_wr()))
+            return (0.1 * self.get_mean_wr() * abs(self.get_adot()))+(4 * self.get_mean_rz_wr()) + (self.get_mean_wr()/self.get_stdev_wr())
    
     def is_type(self, player_type):
         return self.type & player_type == player_type
