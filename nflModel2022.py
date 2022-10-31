@@ -176,27 +176,27 @@ class PlayerClass:
 
     def get_bindex_rb (self):
         try:
-            (0.1*self.get_mean(PlayerType.RB)*self.get_ypc())+(3*self.get_mean(PlayerType.RB, True))+(0.25*(self.get_mean(PlayerType.RB)/self.get_stdev(PlayerType.RB)))
+            (0.15*self.get_mean(PlayerType.RB)*self.get_ypc())+(3*self.get_mean(PlayerType.RB, True))+(0.5*(self.get_mean(PlayerType.RB)/self.get_stdev(PlayerType.RB)))
         except:
             return 0
         else:
-            return (0.1*self.get_mean(PlayerType.RB)*self.get_ypc())+(3*self.get_mean(PlayerType.RB, True))+(0.25*(self.get_mean(PlayerType.RB)/self.get_stdev(PlayerType.RB)))
+            return (0.15*self.get_mean(PlayerType.RB)*self.get_ypc())+(3*self.get_mean(PlayerType.RB, True))+(0.5*(self.get_mean(PlayerType.RB)/self.get_stdev(PlayerType.RB)))
 
     def get_bindex_qb (self):
         try:
-            (0.06*self.get_adot_qb()*self.get_completed_pass_percent()*self.get_mean(PlayerType.QB))+(3*self.get_completed_pass_percent()*self.get_mean(PlayerType.QB, True))+((0.06*self.get_completed_pass_percent()*self.get_mean(PlayerType.QB))/self.get_stdev(PlayerType.QB))
+            (0.08*self.get_adot_qb()*self.get_completed_pass_percent()*self.get_mean(PlayerType.QB))+(3*self.get_completed_pass_percent()*self.get_mean(PlayerType.QB, True))+((0.06*self.get_completed_pass_percent()*self.get_mean(PlayerType.QB))/self.get_stdev(PlayerType.QB))
         except:
             return 0
         else:
-            return (0.06*self.get_completed_pass_percent()*self.get_mean(PlayerType.QB)*self.get_adot_qb())+(3*self.get_completed_pass_percent()*self.get_mean(PlayerType.QB, True))+((0.06*self.get_completed_pass_percent()*self.get_mean(PlayerType.QB))/self.get_stdev(PlayerType.QB))
+            return (0.08*self.get_completed_pass_percent()*self.get_mean(PlayerType.QB)*self.get_adot_qb())+(3*self.get_completed_pass_percent()*self.get_mean(PlayerType.QB, True))+((0.06*self.get_completed_pass_percent()*self.get_mean(PlayerType.QB))/self.get_stdev(PlayerType.QB))
 
     def get_bindex_wr (self):
         try:
-            (0.063 * self.get_mean(PlayerType.WR)*abs(self.get_adot_wr()))+(3*self.get_mean(PlayerType.WR, True))+(0.5*(self.get_mean(PlayerType.WR)/self.get_stdev(PlayerType.WR)))
+            (0.1*self.get_mean(PlayerType.WR)*abs(self.get_adot_wr()))+(4*self.get_mean(PlayerType.WR, True))+(0.5*(self.get_mean(PlayerType.WR)/self.get_stdev(PlayerType.WR)))
         except:
             return 0
         else:
-            return (0.063 * self.get_mean(PlayerType.WR) * abs(self.get_adot_wr()))+(3 * self.get_mean(PlayerType.WR, True)) + (0.5 * (self.get_mean(PlayerType.WR)/self.get_stdev(PlayerType.WR)))
+            return (0.1*self.get_mean(PlayerType.WR)*abs(self.get_adot_wr()))+(4*self.get_mean(PlayerType.WR, True))+(0.5*(self.get_mean(PlayerType.WR)/self.get_stdev(PlayerType.WR)))
    
     def is_type(self, player_type):
         return self.type & player_type == player_type
