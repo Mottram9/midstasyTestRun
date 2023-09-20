@@ -19,67 +19,17 @@ yyyy = pd.read_csv('https://github.com/nflverse/nflverse-data/releases/download/
 from espn_api.football import League
 
 league = League(league_id=1471217, year = 2023, espn_s2 = 'AEAlGBHWzC6C11wr2NGZuz7v7aS6d1ziyHIqw5UepPnZtS9v%2FTX8E4MnAAwdlV9%2FVoH4fSX1wMvZc0uFxPVqGclKy22xbFakCJVIsbwdj0n1EXevS8lzYGMkBrPsa%2BDhkQbCu1HQweEtU%2F6PUNcX8ElKTZXbkpieZWmeaBzwr2PvFDNmVtFrfoxX0llqlnjGXG0irUc6liDjKiKcv4%2BDudmqDju3W%2FZqbldzBlRWSpwUSPnDFh36zvwmb%2BkEkffkATES8ZjNCVe%2F6sWMdVg3gFIPtjJkVXBaE%2F2vmddCQbaDQQ%3D%3D', swid = '{FEA2C37D-CFAE-4161-B882-4BE389FF2041}')
-league.teams
-Mike = league.teams[0]
-Mark = league.teams[1]
-Tim = league.teams[2]
-Murph = league.teams[3]
-OMM = league.teams[4]
-DLO = league.teams[5]
-BabyEv = league.teams[6]
-Moreno = league.teams[7]
-bRad = league.teams[8]
-Tom = league.teams[9]
-Chickfry = league.teams[10]
-Thomas = league.teams[11]
 
-MikeNames = []
-for x in Mike.roster:
-    MikeNames.append(x.name + '-' + x.proTeam)
+def create(team):
+    ret = []
+    for player in team.roster:
+        ret.append(player.name + '-' + player.proTeam)
+    return ret
 
-MarkNames = []
-for x in Mark.roster:
-    MarkNames.append(x.name + '-' + x.proTeam)
-
-TimNames = []
-for x in Tim.roster:
-    TimNames.append(x.name + '-' + x.proTeam)
-
-MurphNames = []
-for x in Murph.roster:
-    MurphNames.append(x.name + '-' + x.proTeam)
-OMMNames = []
-for x in OMM.roster:
-    OMMNames.append(x.name + '-' + x.proTeam)
-
-DLONames = []
-for x in DLO.roster:
-    DLONames.append(x.name + '-' + x.proTeam)
-
-BabyEvNames = []
-for x in BabyEv.roster:
-    BabyEvNames.append(x.name + '-' + x.proTeam)
-
-MorenoNames = []
-for x in Moreno.roster:
-    MorenoNames.append(x.name + '-' + x.proTeam)
-
-bRadNames = []
-for x in bRad.roster:
-    bRadNames.append(x.name + '-' + x.proTeam)
-
-TomNames = []
-for x in Tom.roster:
-    TomNames.append(x.name + '-' + x.proTeam)
-
-ChickfryNames = []
-for x in Chickfry.roster:
-    ChickfryNames.append(x.name + '-' + x.proTeam)
-
-ThomasNames = []
-for x in Thomas.roster:
-    ThomasNames.append(x.name + '-' + x.proTeam)
-print(MikeNames)
+player_outputs = [] 
+for team in league.teams:
+    player_outputs.append(create(team))
+    
 # data_pbp = pd.read_csv('play_by_play_2022.csv.gz', compression = 'gzip', low_memory = False)
 
 ##Filter for regular season only
@@ -522,7 +472,8 @@ f.close()
 
 g = open('test_totsRosters.csv', 'w')
 g.write('1,2,3,4,5,6,7,8,9,10,11,12,13,14,15\n')
-g.write(f'{MikeNames}\n{MarkNames}\n{TimNames}\n{MurphNames}\n{OMMNames}\n{DLONames}\n{BabyEvNames}\n{MorenoNames}\n{bRadNames}\n{TomNames}\n{ChickfryNames}\n{ThomasNames}\n')
+for player_output in player_outputs:
+    g.write(','.join(player_output) + '\n')
 g.flush()
 g.close()
 
