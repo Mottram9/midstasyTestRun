@@ -40,15 +40,15 @@ class PlayerClass:
         self.id = id
         self.name = name
         self.team = team
-        self.rb_values = [0, 0, 0, 0, 0, 0, 0, 0]
-        self.rb_rz_values = [0, 0, 0, 0, 0, 0, 0, 0]
-        self.wr_values = [0, 0, 0, 0, 0, 0, 0, 0]
-        self.wr_rz_values = [0, 0, 0, 0, 0, 0, 0, 0]
-        self.qb_values = [0, 0, 0, 0, 0, 0, 0, 0]
-        self.qb_rz_values = [0, 0, 0, 0, 0, 0, 0, 0]
-        self.weekly_air_yds = [0, 0, 0, 0, 0, 0, 0, 0]
-        self.weekly_rushing_yds = [0, 0, 0, 0, 0, 0, 0, 0]
-        self.active_week = [0, 0, 0, 0, 0, 0, 0, 0]
+        self.rb_values = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        self.rb_rz_values = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        self.wr_values = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        self.wr_rz_values = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        self.qb_values = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        self.qb_rz_values = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        self.weekly_air_yds = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        self.weekly_rushing_yds = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        self.active_week = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
         self.completed_pass_count = 0
         self.total_pass_count = 0
         
@@ -192,11 +192,11 @@ class PlayerClass:
 
     def get_bindex_wr (self):
         try:
-            (0.1*self.get_mean(PlayerType.WR)*abs(self.get_adot_wr()))+(4*self.get_mean(PlayerType.WR, True))+(0.5*(self.get_mean(PlayerType.WR)/self.get_stdev(PlayerType.WR)))
+            (0.1*self.get_mean(PlayerType.WR)*abs(self.get_adot_wr()))+(4*self.get_mean(PlayerType.WR, True))+(self.get_mean(PlayerType.WR)/self.get_stdev(PlayerType.WR))
         except:
             return 0
         else:
-            return (0.1*self.get_mean(PlayerType.WR)*abs(self.get_adot_wr()))+(4*self.get_mean(PlayerType.WR, True))+(0.5*(self.get_mean(PlayerType.WR)/self.get_stdev(PlayerType.WR)))
+            return (0.1*self.get_mean(PlayerType.WR)*abs(self.get_adot_wr()))+(4*self.get_mean(PlayerType.WR, True))+(self.get_mean(PlayerType.WR)/self.get_stdev(PlayerType.WR))
    
     def is_type(self, player_type):
         return self.type & player_type == player_type
@@ -210,7 +210,6 @@ class PlayerClass:
             for x in self.active_week:
                 self.active_week[itr] += 1
                 itr += 1
-
 
     def to_csv_output(self):
         return f'{self.name},{self.team},{self.get_total(PlayerType.RB)},{self.get_total(PlayerType.WR)},{self.get_total(PlayerType.QB)},{self.get_mean(PlayerType.RB)},{self.get_mean(PlayerType.WR)},{self.get_mean(PlayerType.QB)},{self.get_ypc()},{self.get_adot_wr()},{self.get_adot_qb()},{self.get_completed_pass_percent()},{self.get_stdev(PlayerType.RB)},{self.get_stdev(PlayerType.WR)},{self.get_stdev(PlayerType.QB)},{self.get_bindex_rb()},{self.get_bindex_wr()},{self.get_bindex_qb()}\n'
@@ -278,7 +277,6 @@ for _, value in data_pbp.iterrows():
     try_add_qb_rz(value)
     try_add_wr_rz(value)
 
-
 # Get the snap counts
 for _, value in xxxx.iterrows():
     # 0 - Week Data
@@ -291,7 +289,6 @@ for _, value in xxxx.iterrows():
             if id in player_dict:
                 player_dict[id].add_active(int(week_string))
 
-
 for key in player_dict:
     print(player_dict[key])
     
@@ -302,7 +299,6 @@ for key in player_dict:
     f.write(player_dict[key].to_csv_output())
 f.flush()
 f.close()
-
 
 print(len(player_dict))
 print('COMPLETE')

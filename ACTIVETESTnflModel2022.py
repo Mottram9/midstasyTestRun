@@ -6,7 +6,22 @@ from statistics import mean, stdev
 
 ## Read play by play dataset
 
+## NFL season year to pull
+
 YEAR = 2023
+
+## Upcoming NFL Week
+
+FantasyWeekIs = 9
+
+##RostersOnly = No if it's Tuesday, else = Yes
+
+
+RostersOnly = 'Yes'
+
+## Last n weeks to include in calculations for player scores
+
+n_weeks_included = 18
 
 data_pbp = pd.read_csv('https://github.com/nflverse/nflverse-data/releases/download/pbp/' \
                    'play_by_play_' + str(YEAR) + '.csv.gz',
@@ -20,16 +35,61 @@ from espn_api.football import League
 
 league = League(league_id=1471217, year = 2023, espn_s2 = 'AEAlGBHWzC6C11wr2NGZuz7v7aS6d1ziyHIqw5UepPnZtS9v%2FTX8E4MnAAwdlV9%2FVoH4fSX1wMvZc0uFxPVqGclKy22xbFakCJVIsbwdj0n1EXevS8lzYGMkBrPsa%2BDhkQbCu1HQweEtU%2F6PUNcX8ElKTZXbkpieZWmeaBzwr2PvFDNmVtFrfoxX0llqlnjGXG0irUc6liDjKiKcv4%2BDudmqDju3W%2FZqbldzBlRWSpwUSPnDFh36zvwmb%2BkEkffkATES8ZjNCVe%2F6sWMdVg3gFIPtjJkVXBaE%2F2vmddCQbaDQQ%3D%3D', swid = '{FEA2C37D-CFAE-4161-B882-4BE389FF2041}')
 
-def create(team):
+def checkIfRomanNumeral(numeral):
+    numeral = {c for c in numeral.upper()}
+    validRomanNumerals = {c for c in "MDCLXVI()"}
+    return not numeral - validRomanNumerals
+
+def create():
     ret = []
-    for player in team.roster:
-        ret.append(player.name + '-' + player.proTeam)
+    for matchups in league.box_scores(FantasyWeekIs):
+      h = []
+      g= []
+      for player in matchups.home_lineup:
+          split = player.name.split()
+          last = split[len(split) -  1]
+          team = player.proTeam
+          slot = player.slot_position
+          if checkIfRomanNumeral(last) == True:
+              last = *split,_ = split
+              last = split[len(split) -  1]
+          if 'Jr' in last or 'Sr' in last:
+              last = *split,_ = split
+              last = split[len(split) -  1]
+          team = team.replace('OAK', 'LV')
+          team = team.replace('LAR', 'LA')
+          team = team.replace('WSH', 'WAS')
+          h.append(last + ',' + team + ',' + slot)
+      ret.append(h)
+      for player in matchups.away_lineup:
+          split = player.name.split()
+          last = split[len(split) -  1]
+          team = player.proTeam
+          slot = player.slot_position
+          if checkIfRomanNumeral(last) == True:
+              last = *split,_ = split
+              last = split[len(split) -  1]
+          if 'Jr' in last or 'Sr' in last:
+              last = *split,_ = split
+              last = split[len(split) -  1]
+          team = team.replace('OAK', 'LV')
+          team = team.replace('LAR', 'LA')
+          team = team.replace('WSH', 'WAS')
+          g.append(last + ',' + team + ',' + slot)
+      ret.append(g)
+    return ret
+
+def make():
+    ret = []
+    for matchups in league.box_scores(FantasyWeekIs):
+        ret.append(matchups.home_team)
+        ret.append(matchups.away_team)
     return ret
 
 player_outputs = [] 
-for team in league.teams:
-    player_outputs.append(create(team))
-    
+player_outputs = create()
+header_outputs = make()
+
 # data_pbp = pd.read_csv('play_by_play_2022.csv.gz', compression = 'gzip', low_memory = False)
 
 ##Filter for regular season only
@@ -39,10 +99,6 @@ data_pbp = data_pbp.loc[data_pbp.season_type=='REG']
 ## Create empty dict for player scores
 
 player_dict = {}
-
-## Last n weeks to include in calculations for player scores
-
-n_weeks_included = 18
 
 ##PlayerType class, player attributes, values, and class specific methods
 
@@ -55,18 +111,18 @@ class PlayerClass:
 
     def __init__(self, id, name, team):
         self.id = id
-        self.name = name
+        self.name = name.split('.')
         self.team = team
         self.pos = None
-        self.rb_values = [0, 0]
-        self.rb_rz_values = [0, 0]
-        self.wr_values = [0, 0]
-        self.wr_rz_values = [0, 0]
-        self.qb_values = [0, 0]
-        self.qb_rz_values = [0, 0]
-        self.weekly_air_yds = [0, 0]
-        self.weekly_rushing_yds = [0, 0]
-        self.active_week = [0, 0]
+        self.rb_values = [0] * (FantasyWeekIs-1)
+        self.rb_rz_values = [0] * (FantasyWeekIs-1)
+        self.wr_values = [0] * (FantasyWeekIs-1)
+        self.wr_rz_values = [0] * (FantasyWeekIs-1)
+        self.qb_values = [0] * (FantasyWeekIs-1)
+        self.qb_rz_values = [0] * (FantasyWeekIs-1)
+        self.weekly_air_yds = [0] * (FantasyWeekIs-1)
+        self.weekly_rushing_yds = [0] * (FantasyWeekIs-1)
+        self.active_week = [0] * (FantasyWeekIs-1)
         self.completed_pass_count = 0
         self.total_pass_count = 0
         self.reception_count = 0
@@ -383,7 +439,7 @@ class PlayerClass:
         self.active_week[week - 1] = 1
 
     def to_csv_output(self):
-        return f'{self.name},{self.team},{self.pos},{self.get_total_rb()},{self.get_total_wr()},{self.get_total_qb()},{self.get_mean_rb()},{self.get_mean_wr()},{self.get_mean_qb()},{self.get_ypc()},{self.get_adot()},{self.get_adot_qb()},{self.get_completed_pass_percent()},{self.get_catch_percent()},{self.get_rz_catch_percent()},{self.get_mean_rz_rb()},{self.get_mean_rz_wr()},{self.get_mean_rz_qb()},{self.get_active_total()},{self.get_bindex_rb()},{self.get_bindex_wr()},{self.get_bindex_qb()}\n'
+        return f'{self.name[-1].lstrip()},{self.team},{self.pos},{self.get_total_rb()},{self.get_total_wr()},{self.get_total_qb()},{self.get_mean_rb()},{self.get_mean_wr()},{self.get_mean_qb()},{self.get_ypc()},{self.get_adot()},{self.get_adot_qb()},{self.get_completed_pass_percent()},{self.get_catch_percent()},{self.get_rz_catch_percent()},{self.get_mean_rz_rb()},{self.get_mean_rz_wr()},{self.get_mean_rz_qb()},{self.get_active_total()},{self.get_bindex_rb()},{self.get_bindex_wr()},{self.get_bindex_qb()}\n'
 
 ## Functions for filling the dict
 
@@ -435,176 +491,62 @@ def try_add_wr_rz(csv_row):
             player_dict[csv_row.receiver_player_id].add_wr_rz(csv_row.week, csv_row.complete_pass)
 
 ## Loop through play by play to fill dict with above functions
-        
-for _, value in data_pbp.iterrows():
-    try_add_wr(value)
-    try_add_rb(value)
-    try_add_qb(value)
-    try_add_rb_rz(value)
-    try_add_qb_rz(value)
-    try_add_wr_rz(value)
 
-for _, value in xxxx.iterrows():
-    week_string = value['nflverse_game_id'].split('_')[1]
+if RostersOnly == 'No':
 
-    if pd.isna(value['offense_players']) == False: 
-            for id in value['offense_players'].split(';'):
-                if id in player_dict:
-                    if int(week_string) <= 18:
-                        player_dict[id].add_active(int(week_string))
+    for _, value in data_pbp.iterrows():
+        try_add_wr(value)
+        try_add_rb(value)
+        try_add_qb(value)
+        try_add_rb_rz(value)
+        try_add_qb_rz(value)
+        try_add_wr_rz(value)
 
-for _, value in yyyy.iterrows():
-    add_pos(value)
+    for _, value in xxxx.iterrows():
+        week_string = value['nflverse_game_id'].split('_')[1]
 
-for key in player_dict:
-    print(player_dict[key])
+        if pd.isna(value['offense_players']) == False: 
+                for id in value['offense_players'].split(';'):
+                    if id in player_dict:
+                        if int(week_string) <= 18:
+                            player_dict[id].add_active(int(week_string))
+
+    for _, value in yyyy.iterrows():
+        add_pos(value)
+
+    for key in player_dict:
+        print(player_dict[key])
 
 ## Write to CSV for Brom Model   
 
-f = open('test_nflmodel' + str(YEAR)+ '.csv', 'w')
-f.write('player,team,pos,carry total,target total,pass total,carry mean,target mean,pass mean,ypc,adot,adot qb,completion pct,catch pct,RZcatch pct,RZcarry mean,RZtarget mean,RZpass mean,total active weeks,carry score,target score,passing score\n')
-for key in player_dict:
-    f.write(player_dict[key].to_csv_output())
-f.flush()
-f.close()
+    f = open('test_nflmodel' + str(YEAR) + '.csv', 'w')
+    f.write('player,team,pos,carry total,target total,pass total,carry mean,target mean,pass mean,ypc,adot,adot qb,completion pct,catch pct,RZcatch pct,RZcarry mean,RZtarget mean,RZpass mean,total active weeks,carry score,target score,passing score\n')
+    for key in player_dict:
+        f.write(player_dict[key].to_csv_output())
+    f.flush()
+    f.close()
+
+else:
+    pass
 
 ##Write to CSV for Tots Rosters
 
 g = open('test_totsRosters.csv', 'w')
-g.write('1,2,3,4,5,6,7,8,9,10,11,12,13,14,15\n')
-for player_output in player_outputs:
-    g.write(','.join(player_output) + '\n')
+g.write(','.join(map(lambda x: x.owner + ',' + ',', header_outputs)) + '\n')
+for i in range(15):
+    for j in range(len(header_outputs)):
+        if i < len(player_outputs[j]):
+            g.write(player_outputs[j][i])
+        else:
+            g.write('')
+
+        if j != 14:
+            g.write(',')
+    g.write('\n')
 g.flush()
 g.close()
 
 print(len(player_dict))
 print('COMPLETE')
-
-# WRTable1 = pd.DataFrame(WRdictTest)
-# WRTable1 = WRTable1.T
-# WRTable2 = pd.DataFrame(WRTable1.mean(axis = 1))
-# WRTable3 = pd.DataFrame(WRTable1.std(axis = 1))
-# WRTable4 = pd.DataFrame(WRTable1.sum(axis = 1))
-# WRTable1['total'] = WRTable4
-# WRTable1['mean'] = WRTable2
-# WRTable1['stdev'] = WRTable3
-# # WRTable1['RZmean'] = RZ_WRTable2
-# # WRTable1['RZstdev'] = RZ_WRTable3
-# show(WRTable1)
-
-
-
-
-
-
-
-
-
-
-##Statistics example
-
-# for key in WRdictTest:
-#     print(key)
-#     print(stdev(WRdictTest[key]))
-#     print(sum(WRdictTest[key]))
-
-##Create and fill the RB Dictionary for weekly carries array
-
-# RBdictTest = {}
-
-# for k, val in data.iterrows():
-#     if pd.isna(val.rusher)==False:
-#         if (val.rusher) in RBdictTest:
-#             pass
-#         else:
-#             RBdictTest[val.rusher] = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
-#         RBdictTest[val.rusher][val.week-1] +=1
-
-##Statistics example
-
-# for k in RBdictTest:
-#     print(k)
-#     print(stdev(RBdictTest[k]))
-#     print(sum(RBdictTest[k]))
-
-##Create and fill Redzone WR dictionary for weekly targets array
-
-# RZdata = data.loc[data.yardline_100 <= 20]
-
-# RZ_WRdictTest = {}
-
-# for RZkey, RZvalue in RZdata.iterrows():
-#     if pd.isna(RZvalue.receiver)==False:
-#         if (RZvalue.receiver) in RZ_WRdictTest:
-#             pass
-#         else:
-#             RZ_WRdictTest[RZvalue.receiver] = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
-#         RZ_WRdictTest[RZvalue.receiver][RZvalue.week-1] +=1
-
-##Create and fill Redzone RB dictionary for weekly carries array
-
-# RZ_RBdictTest = {}
-
-# for RZk, RZval in RZdata.iterrows():
-#     if pd.isna(RZval.rusher)==False:
-#         if (RZval.rusher) in RZ_RBdictTest:
-#             pass
-#         else:
-#             RZ_RBdictTest[RZval.rusher] = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
-#         RZ_RBdictTest[RZval.rusher][RZval.week-1] +=1
-
-
-##Search Engines for weekly Carries or Targets ALL & REDZONE
-
-# print(WRdictTest.get(''))
-# print(RBdictTest.get(''))
-# print(RZ_WRdictTest.get(''))
-# print(RZ_RBdictTest.get('Ja.Williams'))
-
-##Convert to dataframe and show table in PandasGUI
-
-# RZ_WRTable1 = pd.DataFrame(RZ_WRdictTest)
-# RZ_WRTable1 = RZ_WRTable1.T
-# RZ_WRTable2 = pd.DataFrame(RZ_WRTable1.mean(axis = 1))
-# RZ_WRTable3 = pd.DataFrame(RZ_WRTable1.std(axis = 1))
-# RZ_WRTable4 = pd.DataFrame(RZ_WRTable1.sum(axis = 1))
-# RZ_WRTable1['total'] = RZ_WRTable4
-# RZ_WRTable1['mean'] = RZ_WRTable2
-# RZ_WRTable1['stdev'] = RZ_WRTable3
-# show(RZ_WRTable1)
-
-# RZ_RBTable1 = pd.DataFrame(RZ_RBdictTest)
-# RZ_RBTable1 = RZ_RBTable1.T
-# RZ_RBTable2 = pd.DataFrame(RZ_RBTable1.mean(axis = 1))
-# RZ_RBTable3 = pd.DataFrame(RZ_RBTable1.std(axis = 1))
-# RZ_RBTable4 = pd.DataFrame(RZ_RBTable1.sum(axis = 1))
-# RZ_RBTable1['total'] = RZ_RBTable4
-# RZ_RBTable1['mean'] = RZ_RBTable2
-# RZ_RBTable1['stdev'] = RZ_RBTable3
-# show(RZ_RBTable1)
-
-# WRTable1 = pd.DataFrame(WRdictTest)
-# WRTable1 = WRTable1.T
-# WRTable2 = pd.DataFrame(WRTable1.mean(axis = 1))
-# WRTable3 = pd.DataFrame(WRTable1.std(axis = 1))
-# WRTable4 = pd.DataFrame(WRTable1.sum(axis = 1))
-# WRTable1['total'] = WRTable4
-# WRTable1['mean'] = WRTable2
-# WRTable1['stdev'] = WRTable3
-# WRTable1['RZmean'] = RZ_WRTable2
-# WRTable1['RZstdev'] = RZ_WRTable3
-# show(WRTable1)
-
-
-# RBTable1 = pd.DataFrame(RBdictTest)
-# RBTable1 = RBTable1.T
-# RBTable2 = pd.DataFrame(RBTable1.mean(axis = 1))
-# RBTable3 = pd.DataFrame(RBTable1.std(axis = 1))
-# RBTable4 = pd.DataFrame(RBTable1.sum(axis = 1))
-# RBTable1['total'] = RBTable4
-# RBTable1['mean'] = RBTable2
-# RBTable1['stdev'] = RBTable3
-# RBTable1['RZmean'] = RZ_RBTable2
-# RBTable1['RZstdev'] = RZ_RBTable3
-# show(RBTable1)
-
+print(player_outputs)
+print(header_outputs)
