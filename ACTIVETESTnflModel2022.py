@@ -8,32 +8,33 @@ from statistics import mean, stdev
 
 ## NFL season year to pull
 
-YEAR = 2023
+YEAR = 2024
 
 ## Upcoming NFL Week
 
-FantasyWeekIs = 9
+FantasyWeekIs = 3
 
 ##RostersOnly = No if it's Tuesday, else = Yes
 
+RostersOnly = 'No'
 
-RostersOnly = 'Yes'
+## n weeks to include in calculations for player scores (end_week=17 to get full season)
 
-## Last n weeks to include in calculations for player scores
-
-n_weeks_included = 18
+start_week = 1
+end_week = 18
 
 data_pbp = pd.read_csv('https://github.com/nflverse/nflverse-data/releases/download/pbp/' \
-                   'play_by_play_' + str(YEAR) + '.csv.gz',
-                   compression= 'gzip', low_memory= False)
+                   'play_by_play_' + str(YEAR) + '.csv.gz', compression = 'gzip', low_memory= False)
 
-xxxx = pd.read_csv('https://github.com/nflverse/nflverse-data/releases/download/pbp_participation/pbp_participation_' + str(YEAR) + '.csv')
+xxxx = pd.read_csv('https://github.com/nflverse/nflverse-data/releases/download/snap_counts/snap_counts_' + str(YEAR) + '.csv.gz', compression = 'gzip')
 
 yyyy = pd.read_csv('https://github.com/nflverse/nflverse-data/releases/download/players/players.csv')
 
+zzzz = pd.read_csv('https://github.com/nflverse/nflverse-data/releases/download/rosters/roster_' + str(YEAR) + '.csv.gz', compression = 'gzip')
+
 from espn_api.football import League
 
-league = League(league_id=1471217, year = 2023, espn_s2 = 'AEAlGBHWzC6C11wr2NGZuz7v7aS6d1ziyHIqw5UepPnZtS9v%2FTX8E4MnAAwdlV9%2FVoH4fSX1wMvZc0uFxPVqGclKy22xbFakCJVIsbwdj0n1EXevS8lzYGMkBrPsa%2BDhkQbCu1HQweEtU%2F6PUNcX8ElKTZXbkpieZWmeaBzwr2PvFDNmVtFrfoxX0llqlnjGXG0irUc6liDjKiKcv4%2BDudmqDju3W%2FZqbldzBlRWSpwUSPnDFh36zvwmb%2BkEkffkATES8ZjNCVe%2F6sWMdVg3gFIPtjJkVXBaE%2F2vmddCQbaDQQ%3D%3D', swid = '{FEA2C37D-CFAE-4161-B882-4BE389FF2041}')
+league = League(league_id = 1471217, year = 2024, espn_s2 = 'AEB%2BE%2BWoHLG1N3P5UYzVjAQefnvACpH1n%2BueiT5DYopYQ3IAPM1qxPhrR1otaU0Wo71b009WhY7PS2LIuUGpsUp1Kg5x9Dq0JvnSAhJ4xZO9liGYJlOu9I4LEVmanRVmDypBeH72g6GwDJuhVwQY5CpDDEbRed38CNVzsYHlTcLZ9pf5NLpD4Qj%2Bwf3vsbSjrpHwBqztgvjpHFEiRplWyS3uZO2iVUsWIfkPabBf27lzJiNu2iecSxy7AY2JbnMfJ6TvLJbsslI6GaLjKXrCrwY3%2BKka5Lu2ptJev%2FCw%2Fr5xrA%3D%3D', swid = '{FEA2C37D-CFAE-4161-B882-4BE389FF2041}')
 
 def checkIfRomanNumeral(numeral):
     numeral = {c for c in numeral.upper()}
@@ -114,19 +115,19 @@ class PlayerClass:
         self.name = name.split('.')
         self.team = team
         self.pos = None
-        self.rb_values = [0] * (FantasyWeekIs-1)
-        self.rb_rz_values = [0] * (FantasyWeekIs-1)
-        self.wr_values = [0] * (FantasyWeekIs-1)
-        self.wr_rz_values = [0] * (FantasyWeekIs-1)
-        self.qb_values = [0] * (FantasyWeekIs-1)
-        self.qb_rz_values = [0] * (FantasyWeekIs-1)
-        self.weekly_air_yds = [0] * (FantasyWeekIs-1)
-        self.weekly_rushing_yds = [0] * (FantasyWeekIs-1)
-        self.active_week = [0] * (FantasyWeekIs-1)
-        self.completed_pass_count = 0
-        self.total_pass_count = 0
-        self.reception_count = 0
-        self.rz_reception_count = 0
+        self.rb_values = [0] * (FantasyWeekIs-1)           ## Weekly carries
+        self.rb_rz_values = [0] * (FantasyWeekIs-1)        ## Weekly redzone carries
+        self.wr_values = [0] * (FantasyWeekIs-1)           ## Weekly targets
+        self.wr_rz_values = [0] * (FantasyWeekIs-1)        ## Weekly redzone targets
+        self.qb_values = [0] * (FantasyWeekIs-1)           ## Weekly passes
+        self.qb_rz_values = [0] * (FantasyWeekIs-1)        ## Weekly redzone passes
+        self.weekly_air_yds = [0] * (FantasyWeekIs-1)      ## Weekly total air yards (upfield yardage for any target)
+        self.weekly_rushing_yds = [0] * (FantasyWeekIs-1)  ## Weekly total rush yards
+        self.active_week = [0] * (FantasyWeekIs-1)         ## Active weeks (weeks with at least one snap)
+        self.completed_pass_count = 0                      ## Total completed passes
+        self.total_pass_count = 0                          ## Total passes
+        self.reception_count = 0                           ## Total receptions
+        self.rz_reception_count = 0                        ## Total redzone receptions
         
     def __str__(self) -> str:
         return f'{self.id}, {self.name}, {self.team}, {self.pos}: {self.active_week}, {self.get_total_rb()}, {self.get_total_wr()}, {self.get_total_qb()}, {self.get_mean_rz_rb()}, {self.get_mean_rz_wr()}, {self.get_mean_rz_qb()}, {self.get_bindex_rb()}, {self.get_bindex_wr()}, {self.get_bindex_qb()}'
@@ -186,11 +187,11 @@ class PlayerClass:
                 ret.append(self.rb_values[itr])
             itr += 1
         try:
-            stdev(ret[-n_weeks_included:])
+            stdev(ret[start_week-1:end_week])
         except:
             return 0
         else:
-            return stdev(ret[-n_weeks_included:])
+            return stdev(ret[start_week-1:end_week])
 
     def get_mean_rb(self):
         ret = []
@@ -200,11 +201,11 @@ class PlayerClass:
                 ret.append(self.rb_values[itr])
             itr += 1
         try:
-            mean(ret[-n_weeks_included:])
+            mean(ret[start_week-1:end_week])
         except:
             return 0
         else:
-            return mean(ret[-n_weeks_included:])
+            return mean(ret[start_week-1:end_week])
 
     def get_total_rb(self):
         ret = []
@@ -213,7 +214,7 @@ class PlayerClass:
             if x == 1:
                 ret.append(self.rb_values[itr])
             itr += 1
-        return sum(ret[-n_weeks_included:])
+        return sum(ret[start_week-1:end_week])
     
     def get_stdev_wr(self):    
         ret = []
@@ -223,11 +224,11 @@ class PlayerClass:
                 ret.append(self.wr_values[itr])
             itr += 1
         try:
-            stdev(ret[-n_weeks_included:])
+            stdev(ret[start_week-1:end_week])
         except:
             return 0
         else:
-            return stdev(ret[-n_weeks_included:])
+            return stdev(ret[start_week-1:end_week])
 
     def get_mean_rz_wr(self):
         ret = []
@@ -237,11 +238,11 @@ class PlayerClass:
                 ret.append(self.wr_rz_values[itr])
             itr += 1
         try:
-            mean(ret[-n_weeks_included:])
+            mean(ret[start_week-1:end_week])
         except:
             return 0
         else:
-            return mean(ret[-n_weeks_included:])
+            return mean(ret[start_week-1:end_week])
 
     def get_mean_rz_rb(self):
         ret = []
@@ -251,11 +252,11 @@ class PlayerClass:
                 ret.append(self.rb_rz_values[itr])
             itr += 1
         try:
-            mean(ret[-n_weeks_included:])
+            mean(ret[start_week-1:end_week])
         except:
             return 0
         else:
-            return mean(ret[-n_weeks_included:])
+            return mean(ret[start_week-1:end_week])
 
     def get_mean_rz_qb(self):
         ret = []
@@ -265,11 +266,11 @@ class PlayerClass:
                 ret.append(self.qb_rz_values[itr])
             itr += 1
         try:
-            mean(ret[-n_weeks_included:])
+            mean(ret[start_week-1:end_week])
         except:
             return 0
         else:
-            return mean(ret[-n_weeks_included:])
+            return mean(ret[start_week-1:end_week])
 
     def get_total_wr(self):
         ret = []
@@ -278,7 +279,7 @@ class PlayerClass:
             if x == 1:
                 ret.append(self.wr_values[itr])
             itr += 1
-        return sum(ret[-n_weeks_included:])
+        return sum(ret[start_week-1:end_week])
 
     def get_mean_wr(self):
         ret = []
@@ -288,11 +289,11 @@ class PlayerClass:
                 ret.append(self.wr_values[itr])
             itr += 1
         try:
-            mean(ret[-n_weeks_included:])
+            mean(ret[start_week-1:end_week])
         except:
             return 0
         else:
-            return mean(ret[-n_weeks_included:])
+            return mean(ret[start_week-1:end_week])
     
     def get_stdev_qb(self):
         ret = []
@@ -302,11 +303,11 @@ class PlayerClass:
                 ret.append(self.qb_values[itr])
             itr += 1
         try:
-            stdev(ret[-n_weeks_included:])
+            stdev(ret[start_week-1:end_week])
         except:
             return 0
         else:
-            return stdev(ret[-n_weeks_included:])
+            return stdev(ret[start_week-1:end_week])
 
     def get_total_qb(self):
         ret = []
@@ -315,7 +316,7 @@ class PlayerClass:
             if x == 1:
                 ret.append(self.qb_values[itr])
             itr += 1
-        return sum(ret[-n_weeks_included:])
+        return sum(ret[start_week-1:end_week])
 
     def get_mean_qb(self):
   
@@ -326,11 +327,11 @@ class PlayerClass:
                 if x == 1:
                     ret.append(self.qb_values[itr])
                 itr += 1
-            try: mean(ret[-n_weeks_included:])
+            try: mean(ret[start_week-1:end_week])
             except:
                 return 0
             else:
-                return mean(ret[-n_weeks_included:])
+                return mean(ret[start_week-1:end_week])
         else:
             return 0
     
@@ -341,7 +342,7 @@ class PlayerClass:
             if x == 1:
                 ret.append(self.weekly_air_yds[itr])
             itr += 1
-        return mean(ret[-n_weeks_included:])
+        return mean(ret[start_week-1:end_week])
 
     def get_mean_rush_yds(self):
         ret = []
@@ -350,7 +351,7 @@ class PlayerClass:
             if x == 1:
                 ret.append(self.weekly_rushing_yds[itr])
             itr += 1
-        return mean(ret[-n_weeks_included:])
+        return mean(ret[start_week-1:end_week])
 
     def get_adot(self):
         if self.total_pass_count < 10:
@@ -490,6 +491,10 @@ def try_add_wr_rz(csv_row):
             try_add_player(csv_row.receiver_player_id, csv_row.receiver_player_name, csv_row.posteam)
             player_dict[csv_row.receiver_player_id].add_wr_rz(csv_row.week, csv_row.complete_pass)
 
+def get_pfr_id(csv_row):
+    if csv_row.gsis_id in player_dict:
+        return csv_row.pfr_id
+
 ## Loop through play by play to fill dict with above functions
 
 if RostersOnly == 'No':
@@ -502,14 +507,19 @@ if RostersOnly == 'No':
         try_add_qb_rz(value)
         try_add_wr_rz(value)
 
-    for _, value in xxxx.iterrows():
-        week_string = value['nflverse_game_id'].split('_')[1]
+    pfr_dict = {}
 
-        if pd.isna(value['offense_players']) == False: 
-                for id in value['offense_players'].split(';'):
-                    if id in player_dict:
-                        if int(week_string) <= 18:
-                            player_dict[id].add_active(int(week_string))
+    for _, value in zzzz.iterrows():
+        pfr_dict[get_pfr_id(value)] = value['gsis_id'] 
+
+    for _, value in xxxx.iterrows():
+        if value['pfr_player_id'] in pfr_dict and value['week'] <= 18 and value['offense_snaps']> 4:
+            player_dict[pfr_dict[value['pfr_player_id']]].add_active(value['week'])
+
+    for key in player_dict:
+        for i in range(FantasyWeekIs-1):
+            if player_dict[key].active_week[i] == 0 and (player_dict[key].qb_values[i] > 0 or player_dict[key].rb_values[i] > 0 or player_dict[key].wr_values[i] > 0):
+                player_dict[key].add_active(i+1)
 
     for _, value in yyyy.iterrows():
         add_pos(value)
@@ -529,10 +539,11 @@ if RostersOnly == 'No':
 else:
     pass
 
-##Write to CSV for Tots Rosters
+#Write to CSV for Tots Rosters
 
 g = open('test_totsRosters.csv', 'w')
-g.write(','.join(map(lambda x: x.owner + ',' + ',', header_outputs)) + '\n')
+
+g.write(','.join(map(lambda x: x.owners[0]['firstName'] + ' ' + x.owners[0]['lastName'] + ',' + ',', header_outputs)) + '\n')
 for i in range(15):
     for j in range(len(header_outputs)):
         if i < len(player_outputs[j]):
@@ -548,5 +559,3 @@ g.close()
 
 print(len(player_dict))
 print('COMPLETE')
-print(player_outputs)
-print(header_outputs)
